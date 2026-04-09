@@ -245,6 +245,12 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "ApiGenericaCsharp v1");
     c.RoutePrefix = "swagger";
 });
+app.UseReDoc(c =>
+{
+    c.RoutePrefix = "redoc";
+    c.SpecUrl("/swagger/v1/swagger.json");
+});
+
 
 // Redirige HTTP a HTTPS para mejorar la seguridad.
 app.UseHttpsRedirection();
