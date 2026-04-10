@@ -205,7 +205,11 @@ namespace ApiGenericaCsharp.Repositorios
             string esquemaFinal = string.IsNullOrWhiteSpace(esquema) ? "dbo" : esquema.Trim();
             int limiteFinal = limite ?? 1000;
 
-            string sql = $"SELECT TOP ({limiteFinal}) * FROM [{esquemaFinal}].[{nombreTabla}]";
+            string sql = $@"
+                SELECT TOP ({limiteFinal}) *
+                FROM [{esquemaFinal}].[{nombreTabla}]
+                WHERE [activo] = 1";
+                
             var resultados = new List<Dictionary<string, object?>>();
 
             try
@@ -275,7 +279,7 @@ namespace ApiGenericaCsharp.Repositorios
                 }
                 else
                 {
-                    sql = $"SELECT * FROM [{esquemaFinal}].[{nombreTabla}] WHERE [{nombreClave}] = @valor";
+                    sql = $"SELECT * FROM [{esquemaFinal}].[{nombreTabla}] WHERE [{nombreClave}] = @valor AND [activo] = 1";
                     valorConvertido = ConvertirValor(valor, tipoColumna);
                     tipoParametro = tipoColumna ?? SqlDbType.NVarChar;
                 }
@@ -488,15 +492,17 @@ namespace ApiGenericaCsharp.Repositorios
         }
 
         public async Task<int> EliminarAsync(
-            string nombreTabla,
-            string? esquema,
-            string nombreClave,
-            string valorClave)
+        string nombreTabla,
+        string? esquema,
+        string nombreClave,
+        string valorClave)
         {
             if (string.IsNullOrWhiteSpace(nombreTabla))
                 throw new ArgumentException("El nombre de la tabla no puede estar vacío.", nameof(nombreTabla));
+
             if (string.IsNullOrWhiteSpace(nombreClave))
                 throw new ArgumentException("El nombre de la clave no puede estar vacío.", nameof(nombreClave));
+
             if (string.IsNullOrWhiteSpace(valorClave))
                 throw new ArgumentException("El valor de la clave no puede estar vacío.", nameof(valorClave));
 
@@ -507,8 +513,12 @@ namespace ApiGenericaCsharp.Repositorios
                 var tipoColumna = await DetectarTipoColumnaAsync(nombreTabla, esquemaFinal, nombreClave);
                 object valorConvertido = ConvertirValor(valorClave, tipoColumna);
 
-                string sql = $"DELETE FROM [{esquemaFinal}].[{nombreTabla}] WHERE [{nombreClave}] = @valorClave";
-                
+                string sql = $@"
+                    UPDATE [{esquemaFinal}].[{nombreTabla}]
+                    SET [activo] = 0
+                    WHERE [{nombreClave}] = @valorClave
+                    AND [activo] = 1";
+
                 string cadena = _proveedorConexion.ObtenerCadenaConexion();
 
                 using var conexion = new SqlConnection(cadena);
@@ -531,7 +541,7 @@ namespace ApiGenericaCsharp.Repositorios
             catch (SqlException ex)
             {
                 throw new InvalidOperationException(
-                    $"Error SQL al eliminar de '{esquemaFinal}.{nombreTabla}': {ex.Message}", ex);
+                    $"Error SQL al hacer borrado lógico en '{esquemaFinal}.{nombreTabla}': {ex.Message}", ex);
             }
         }
 
